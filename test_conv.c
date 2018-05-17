@@ -13,7 +13,6 @@
 #define	CONFIG_OS_MASK		(0x8000)	// Operational Status Register
 #define	CONFIG_OS_SINGLE	(0x8000)	// Write - Starts a single-conversion
 						// Read    1 = Conversion complete
-
 // The multiplexor
 
 #define	CONFIG_MUX_MASK		(0x7000)
@@ -72,8 +71,6 @@ int pinBase = 65;
 int medir(int pino, struct wiringPiNodeStruct *node )
 {
 	//ads1115Setup
-	//struct wiringPiNodeStruct *node ;
-	
   	int fd;
 	int pin = pinBase + pino;
 	printf("Meu pin: %d", pin);
@@ -88,23 +85,20 @@ int medir(int pino, struct wiringPiNodeStruct *node )
 	int chan = pin - node->pinBase ;
 	int16_t  result ;
 	uint16_t config = CONFIG_DEFAULT ;
-
+	
   	chan &= 7 ;
 
 	// Setup the configuration register
-
+	
 	//	Set PGA/voltage range
-
   	config &= ~CONFIG_PGA_MASK ;
   	config |= node->data0 ;
 
-	//	Set sample speed
-
+	//Set sample speed
  	config &= ~CONFIG_DR_MASK ;
   	config |= node->data1 ;
 
 	//	Set single-ended channel or differential mode
-
   	config &= ~CONFIG_MUX_MASK ;
 
   	switch (chan)
@@ -115,14 +109,13 @@ int medir(int pino, struct wiringPiNodeStruct *node )
     		case 3: config |= CONFIG_MUX_SINGLE_3 ; break ;
 	  }
 	
-	//	Start a single conversion
+	//Start a single conversion
 	
 	config |= CONFIG_OS_SINGLE ;
 	config = __bswap_16 (config) ;
 	wiringPiI2CWriteReg16 (node->fd, 1, config) ;
 	
 	// Wait for the conversion to complete
-	
 	for (;;)
 	{
 	    result =  wiringPiI2CReadReg16 (node->fd, 1) ;
@@ -136,7 +129,7 @@ int medir(int pino, struct wiringPiNodeStruct *node )
 	result = __bswap_16 (result) ;
 	
 	// Sometimes with a 0v input on a single-ended channel the internal 0v reference
-	//	can be higher than the input, so you get a negative result...
+	//can be higher than the input, so you get a negative result...
 	
 	if ( (chan < 4) && (result < 0)) 
 		return 0;
@@ -189,7 +182,10 @@ int main()
 	int pin_pressao=0,pin_gas=1, pin_ph=2;
 	int resultado=0;
 	int sensorValue0=0, sensorValue1=0, sensorValue2=0;
-
+	float pressao;
+	double percent_gas; 
+	float ph;
+	
 	struct wiringPiNodeStruct *node ;
 	node = wiringPiNewNode (pinBase, 8);
 	
@@ -198,17 +194,17 @@ int main()
 	{
 		sensorValue0 = medir(pin_pressao, node);
 		//printf("\n Pressão: %d \n\n", sensorValue0);
-		float pressao = calc_pressao(sensorValue0);
+		pressao = calc_pressao(sensorValue0);
 		printf("\n Pressão: %f \n\n", pressao);
 
 		sensorValue1 = medir(pin_gas, node);
 		//printf("\n Ph: %d \n\n", sensorValue1);
-		double percent_gas = calc_gas(sensorValue1);
+		percent_gas = calc_gas(sensorValue1);
 		printf(" A porcentagem de gás metano eh = %.2f\n",percent_gas);
 	
 		sensorValue2 = medir(pin_ph, node);
 		//printf("\n Ph: %d \n", sensorValue2);
-		float ph = calc_ph(sensorValue2);
+		ph = calc_ph(sensorValue2);
 		printf(" Ph: %.2f\n",ph);
 		
 	}
