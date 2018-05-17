@@ -81,7 +81,7 @@ int medir(int pino, struct wiringPiNodeStruct *node )
   	fd = wiringPiI2CSetup (i2cAddr);
 
   	node->fd           = fd ;
- 	node->data0        = CONFIG_PGA_4_096V ;	// Gain in data0
+ 	node->data0        = CONFIG_PGA_6_144V ;	// Gain in data0
   	node->data1        = CONFIG_DR_128SPS ;	// Samples/sec in data1
   	
 	//myanalogread	
@@ -143,10 +143,19 @@ int medir(int pino, struct wiringPiNodeStruct *node )
 	else
 		return result;
 }
-
-/*
+float calc_pressao(int sensorValue)
+{
+	float sensor_volt; //Definindo variavel da conversão de tensão
+  	float Pressão; //Definindo variavel de pressão
+	
+	sensor_volt = sensorValue * (6.144 / 32768); 
+	//printf("\n sensor_pressao_volt: %f \n\n",sensor_volt);
+  	pressao = (10000/2.3) * sensor_volt - (25000/2.3);
+	return pressao;
+}
 double calc_gas(int sensorValue)
 {
+	tensao_sensor = ((4,8-2,5)/32768)*sensorValue;
 	float sensor_volt; //Definindo variavel da conversão de tensão
   	float RS_gas; //Definindo variavel de resistencia do gas
   	float ratio; //Define variable para taxa de gás
@@ -163,30 +172,45 @@ double calc_gas(int sensorValue)
   	double percentage = ppm / 10000; //Convert to percentage
 	return percentage;
 }
-*/
+float calc_ph(int sensorValue)
+{
+	float sensor_volt; //Definindo variavel da conversão de tensão
+  	float ph; //Definindo variavel de pressão
+	
+	sensor_volt = sensorValue * (6.144 / 32768); 
+	//printf("\n sensor_ph_volt: %f \n\n",sensor_volt);
+  	ph = (7/2.5) * sensor_volt;
+	return ph;
+}
 
 int main() 
 {
 	wiringPiSetup();
 	int pin_pressao=0,pin_gas=1, pin_ph=2;
 	int resultado=0;
+	int sensorValue0=0, sensorValue1=0, sensorValue2=0;
 
 	struct wiringPiNodeStruct *node ;
 	node = wiringPiNewNode (pinBase, 8);
 	
-	int sensorValue0 = medir(pin_pressao, node);
-	//double pressao = calc_pressao(sensorValue0);
-        //printf("\n Pressão: %f \n\n", pressao);
-	printf("\n Pressão: %d \n\n", sensorValue0);
 	
-	int sensorValue1 = medir(pin_gas, node);
-	//double percent_gas = calc_gas(sensorValue1);
-  	//printf(" A porcentagem de gás metano eh = %.2f\n",percent_gas);
-	printf("\n Ph: %d \n\n", sensorValue1);
+	While(1)
+	{
+		sensorValue0 = medir(pin_pressao, node);
+		//printf("\n Pressão: %d \n\n", sensorValue0);
+		float pressao = calc_pressao(sensorValue0);
+		printf("\n Pressão: %f \n\n", pressao);
 
-	int sensorValue2 = medir(pin_ph, node);
-	//double ph = calc_ph(sensorValue2);
-  	//printf(" Ph: %.2f\n",ph);
-	printf("\n Ph: %d \n", sensorValue2);
+		sensorValue1 = medir(pin_gas, node);
+		//printf("\n Ph: %d \n\n", sensorValue1);
+		double percent_gas = calc_gas(sensorValue1);
+		printf(" A porcentagem de gás metano eh = %.2f\n",percent_gas);
+	
+		sensorValue2 = medir(pin_ph, node);
+		//printf("\n Ph: %d \n", sensorValue2);
+		float ph = calc_ph(sensorValue2);
+		printf(" Ph: %.2f\n",ph);
+		
+	}
 	return 0;
 }
